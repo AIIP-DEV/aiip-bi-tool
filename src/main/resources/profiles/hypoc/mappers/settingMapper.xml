@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sk.bds.datainsight.database.dao.SettingDao">
+
+    <insert id="insertAccessKey" parameterType="com.sk.bds.datainsight.database.model.AccessKey">
+        INSERT INTO ACCESS_KEY (ID, USER_ID, DESCRIPTION)
+        VALUES (#{id}, #{userId}, #{description})
+    </insert>
+
+    <update id="updateAccessKeyDescription" parameterType="Map">
+        UPDATE ACCESS_KEY SET DESCRIPTION = #{description} WHERE ID = #{id}
+    </update>
+
+    <update id="updateAccessKeyStatus" parameterType="Map">
+        UPDATE ACCESS_KEY SET STATUS = IF(#{status} = 'active', '1', '0') WHERE ID IN
+        <foreach collection="id" item="data" index="index" open="(" close=")" separator=",">
+            #{data}
+        </foreach>
+    </update>
+
+    <select id="getAccessKey" parameterType="Map" resultType="com.sk.bds.datainsight.database.model.AccessKey">
+        SELECT A.ID AS id, A.DESCRIPTION AS description, IF(A.`STATUS` = '1', 'active', 'inactive') AS `status`,
+        DATE_FORMAT(A.CREATE_DATE, '%Y-%m-%d %H:%i') AS createDate, IFNULL(B.CNT, 0) AS `count`, DATE_FORMAT(C.USE_DATE, '%Y-%m-%d %H:%i') AS useDate
+        FROM
+          (SELECT * FROM ACCESS_KEY WHERE DEL_YN = 'N' AND USER_ID = #{userId}
+          <if test="id != null">
+              AND id = #{id}
+          </if>
+          <if test="createFrom != null">
+              AND CREATE_DATE >= STR_TO_DATE(#{createFrom}, '%Y-%m-%d')
+          </if>
+          <if test="createTo != null">
+              AND CREATE_DATE <![CDATA[<=]]> STR_TO_DATE(CONCAT(#{createTo}, '23:59:59'), '%Y-%m-%d %H:%i:%s')
+          </if>
+          <if test="description != null">
+              AND DESCRIPTION LIKE CONCAT('%', #{description}, '%')
+          </if>
+          <if test="status != null">
+              AND `STATUS` = IF(#{status} = 'active', '1', '0')
+          </if>
+          ) A
+          LEFT JOIN (SELECT ACCESS_KEY_ID, COUNT(1) AS CNT FROM EXPORT_CHART GROUP BY ACCESS_KEY_ID) B ON A.ID = B.ACCESS_KEY_ID
+          LEFT JOIN (SELECT ACCESS_KEY_ID, MAX(LAST_USED_DATE) AS USE_DATE FROM EXPORT_CHART GROUP BY ACCESS_KEY_ID) C ON A.ID = C.ACCESS_KEY_ID
+        WHERE 1
+        <if test="useFrom != null">
+            AND C.USE_DATE >= STR_TO_DATE(#{useFrom}, '%Y-%m-%d')
+        </if>
+        <if test="useTo != null">
+            AND C.USE_DATE <![CDATA[<=]]> STR_TO_DATE(CONCAT(#{useTo}, '23:59:59'), '%Y-%m-%d %H:%i:%s')
+        </if>
+        <if test="sort != null">
+            ORDER BY #{sort}
+        </if>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="getAccessKeyCount" parameterType="Map" resultType="int">
+        SELECT COUNT(1)
+        FROM
+          (SELECT * FROM ACCESS_KEY WHERE DEL_YN = 'N' AND USER_ID = #{userId}
+          <if test="id != null">
+            AND id = #{id}
+          </if>
+          <if test="createFrom != null">
+            AND CREATE_DATE >= STR_TO_DATE(#{createFrom}, '%Y-%m-%d')
+          </if>
+          <if test="createTo != null">
+            AND CREATE_DATE <![CDATA[<=]]> STR_TO_DATE(CONCAT(#{createTo}, '23:59:59'), '%Y-%m-%d %H:%i:%s')
+          </if>
+          <if test="description != null">
+            AND DESCRIPTION LIKE CONCAT('%', #{description}, '%')
+          </if>
+          <if test="status != null">
+            AND `STATUS` = IF(#{status} = 'active', '1', '0')
+          </if>
+          ) A
+          LEFT JOIN (SELECT ACCESS_KEY_ID, COUNT(1) AS CNT FROM EXPORT_CHART GROUP BY ACCESS_KEY_ID) B ON A.ID = B.ACCESS_KEY_ID
+          LEFT JOIN (SELECT ACCESS_KEY_ID, MAX(LAST_USED_DATE) AS USE_DATE FROM EXPORT_CHART GROUP BY ACCESS_KEY_ID) C ON A.ID = C.ACCESS_KEY_ID
+        WHERE 1
+        <if test="useFrom != null">
+            AND C.USE_DATE >= STR_TO_DATE(#{useFrom}, '%Y-%m-%d')
+        </if>
+        <if test="useTo != null">
+            AND C.USE_DATE <![CDATA[<=]]> STR_TO_DATE(CONCAT(#{useTo}, '23:59:59'), '%Y-%m-%d %H:%i:%s')
+        </if>
+    </select>
+
+    <delete id="deleteAccessKey" parameterType="List">
+        UPDATE ACCESS_KEY SET DEL_YN = 'Y' WHERE ID IN
+        <foreach collection="list" item="data" index="index" open="(" close=")" separator=",">
+            #{data}
+        </foreach>
+    </delete>
+
+    <select id="getUseAccessKeyInfo" parameterType="String" resultType="com.sk.bds.datainsight.database.model.UseAccessKey">
+        SELECT ANALYSIS_CHART_ID AS chartId, DATE_FORMAT(CREATE_DATE, '%Y-%m-%d %H:%i') AS export,
+        DATE_FORMAT(LAST_USED_DATE, '%Y-%m-%d %H:%i') AS lastUsed
+        FROM EXPORT_CHART WHERE ACCESS_KEY_ID = #{key}
+    </select>
+
+    <insert id="insertExportChart" useGeneratedKeys="true" keyProperty="id" parameterType="Map">
+        INSERT INTO EXPORT_CHART (`ACCESS_KEY_ID`, `ANALYSIS_CHART_ID`, `USER_ID`)
+        VALUES (#{accessKey}, #{chartId}, #{userId})
+    </insert>
+
+    <insert id="insertAccessKeyLog" parameterType="Map">
+        INSERT INTO ACCESS_KEY_LOG (`EXPORT_CHART_ID`, `ACCESS_KEY_ID`, `ANALYSIS_CHART_ID`, `USER_ID`)
+        VALUES (#{exportId}, #{accessKey}, #{chartId}, #{userId})
+    </insert>
+
+    <update id="updateExportChart" parameterType="int">
+        UPDATE EXPORT_CHART SET LAST_USED_DATE = NOW() WHERE ID = #{id}
+    </update>
+
+    <select id="selectAccessKeyStatus" parameterType="String" resultType="String">
+        SELECT IF(DEL_YN = 'Y', 0, `STATUS`) FROM ACCESS_KEY WHERE ID = #{id}
+    </select>
+
+    <select id="getDataSetSchedule" parameterType="Map" resultType="Map">
+        SELECT IF(C.lastUpdate > D.lastUpdate, C.lastUpdate, D.lastUpdate) AS lastUpdate, IF(C.lastUpdate > D.lastUpdate, C.`status`, D.`status`) AS `status`
+        FROM
+            (SELECT 1 AS dummy) AA
+            LEFT JOIN (SELECT 1 AS dummy, ID, CONCAT('dataCopyJob_Onetime_', ID) AS JOB_NAME FROM SCHEDULE_ONETIME_INFO
+            WHERE DATA_SET_ID = #{dataSetId} AND USER_ID = #{userId} AND UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM SCHEDULE_ONETIME_INFO WHERE DATA_SET_ID = #{dataSetId} AND USER_ID = #{userId})
+            ) A ON AA.dummy = A.dummy
+            LEFT JOIN (SELECT MAX(JOB_INSTANCE_ID) AS ID, JOB_NAME FROM BATCH_JOB_INSTANCE GROUP BY JOB_NAME) B ON A.JOB_NAME = B.JOB_NAME
+            LEFT JOIN (SELECT JOB_INSTANCE_ID, `STATUS`, DATE_FORMAT(LAST_UPDATED, '%Y-%m-%d %H:%i:%s') AS lastUpdate FROM BATCH_JOB_EXECUTION) C ON B.ID = C.JOB_INSTANCE_ID
+            LEFT JOIN
+            (
+                SELECT 1 AS dummy, C.lastUpdate, C.`STATUS` AS `status`
+                FROM
+                    (SELECT ID, CONCAT('dataCopyJob_Trigger_', ID) AS JOB_NAME FROM SCHEDULE_INFO WHERE DATA_SET_ID = #{dataSetId} AND USER_ID = #{userId}) A
+                    LEFT JOIN (SELECT MAX(JOB_INSTANCE_ID) AS ID, JOB_NAME FROM BATCH_JOB_INSTANCE GROUP BY JOB_NAME) B ON A.JOB_NAME = B.JOB_NAME
+                    LEFT JOIN (SELECT JOB_INSTANCE_ID, `STATUS`, DATE_FORMAT(LAST_UPDATED, '%Y-%m-%d %H:%i:%s') AS lastUpdate FROM BATCH_JOB_EXECUTION) C ON B.ID = C.JOB_INSTANCE_ID
+                ORDER BY C.lastUpdate DESC
+                LIMIT 1
+            ) D ON AA.dummy = D.dummy
+    </select>
+
+    <select id="getDataSetScheduleList" parameterType="Map" resultType="Map">
+        SELECT 'schedule' AS type, A.ID AS id, A.startTime, A.`REPEAT` AS `repeat`, A.REFRESH_ON AS refreshOn, C.lastUpdate, C.`STATUS` AS `status`
+        FROM
+            (SELECT ID, `REPEAT`, REFRESH_ON, DATE_FORMAT(START_TIME, '%Y-%m-%d %H:%i:%s') AS startTime, CONCAT('dataCopyJob_Trigger_', ID) AS JOB_NAME FROM SCHEDULE_INFO WHERE DATA_SET_ID = #{dataSetId} AND USER_ID = #{userId}) A
+            LEFT JOIN (SELECT MAX(JOB_INSTANCE_ID) AS ID, JOB_NAME FROM BATCH_JOB_INSTANCE GROUP BY JOB_NAME) B ON A.JOB_NAME = B.JOB_NAME
+            LEFT JOIN (SELECT JOB_INSTANCE_ID, `STATUS`, DATE_FORMAT(LAST_UPDATED, '%Y-%m-%d %H:%i:%s') AS lastUpdate FROM BATCH_JOB_EXECUTION) C ON B.ID = C.JOB_INSTANCE_ID
+        UNION
+        SELECT 'onetime' AS type, A.ID AS id, A.startTime, 'onetime' AS `repeat`, NULL AS refreshOn, C.lastUpdate, C.`STATUS` AS `status`
+        FROM
+            (SELECT ID, DATE_FORMAT(CREATE_DATE, '%Y-%m-%d %H:%i:%s') AS startTime, CONCAT('dataCopyJob_Onetime_', ID) AS JOB_NAME FROM SCHEDULE_ONETIME_INFO WHERE DATA_SET_ID = #{dataSetId} AND USER_ID = #{userId}
+              AND UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM SCHEDULE_ONETIME_INFO WHERE DATA_SET_ID = #{dataSetId} AND USER_ID = #{userId})
+            ) A
+            LEFT JOIN (SELECT MAX(JOB_INSTANCE_ID) AS ID, JOB_NAME FROM BATCH_JOB_INSTANCE GROUP BY JOB_NAME) B ON A.JOB_NAME = B.JOB_NAME
+            LEFT JOIN (SELECT JOB_INSTANCE_ID, `STATUS`, DATE_FORMAT(LAST_UPDATED, '%Y-%m-%d %H:%i:%s') AS lastUpdate FROM BATCH_JOB_EXECUTION) C ON B.ID = C.JOB_INSTANCE_ID
+    </select>
+
+    <select id="getDataSetScheduleDetail" parameterType="int" resultType="com.sk.bds.datainsight.database.model.ScheduleDetail">
+        SELECT B.startTime, B.endTime, C.STEP_NAME AS stepName, C.stepStart, C.stepEnd, C.`STATUS` AS `status`, C.EXIT_MESSAGE AS message
+        FROM
+            (SELECT MAX(JOB_INSTANCE_ID) AS ID, JOB_NAME FROM BATCH_JOB_INSTANCE WHERE JOB_NAME = CONCAT('dataCopyJob_Trigger_', #{id}) GROUP BY JOB_NAME) A
+            LEFT JOIN (SELECT JOB_INSTANCE_ID, JOB_EXECUTION_ID, DATE_FORMAT(START_TIME, '%Y-%m-%d %H:%i:%s') AS startTime, DATE_FORMAT(END_TIME, '%Y-%m-%d %H:%i:%s') AS endTime FROM BATCH_JOB_EXECUTION) B ON A.ID = B.JOB_INSTANCE_ID
+            LEFT JOIN (SELECT JOB_EXECUTION_ID, STEP_NAME, `STATUS`, EXIT_MESSAGE, DATE_FORMAT(START_TIME, '%Y-%m-%d %H:%i:%s') AS stepStart, DATE_FORMAT(END_TIME, '%Y-%m-%d %H:%i:%s') AS stepEnd FROM BATCH_STEP_EXECUTION) C ON B.JOB_EXECUTION_ID = C.JOB_EXECUTION_ID
+    </select>
+
+    <select id="getDataSetOnetimeScheduleDetail" parameterType="int" resultType="com.sk.bds.datainsight.database.model.ScheduleDetail">
+        SELECT B.startTime, B.endTime, C.STEP_NAME AS stepName, C.stepStart, C.stepEnd, C.`STATUS` AS `status`, C.EXIT_MESSAGE AS message
+        FROM
+        (SELECT MAX(JOB_INSTANCE_ID) AS ID, JOB_NAME FROM BATCH_JOB_INSTANCE WHERE JOB_NAME = CONCAT('dataCopyJob_Onetime_', #{id}) GROUP BY JOB_NAME) A
+        LEFT JOIN (SELECT JOB_INSTANCE_ID, JOB_EXECUTION_ID, DATE_FORMAT(START_TIME, '%Y-%m-%d %H:%i:%s') AS startTime, DATE_FORMAT(END_TIME, '%Y-%m-%d %H:%i:%s') AS endTime FROM BATCH_JOB_EXECUTION) B ON A.ID = B.JOB_INSTANCE_ID
+        LEFT JOIN (SELECT JOB_EXECUTION_ID, STEP_NAME, `STATUS`, EXIT_MESSAGE, DATE_FORMAT(START_TIME, '%Y-%m-%d %H:%i:%s') AS stepStart, DATE_FORMAT(END_TIME, '%Y-%m-%d %H:%i:%s') AS stepEnd FROM BATCH_STEP_EXECUTION) C ON B.JOB_EXECUTION_ID = C.JOB_EXECUTION_ID
+    </select>
+
+    <delete id="deleteDataSetSchedule" parameterType="String">
+        DELETE FROM SCHEDULE_INFO WHERE ID IN (${value})
+    </delete>
+
+    <insert id="insertDataSetSchedule" useGeneratedKeys="true" keyProperty="id" parameterType="Map">
+        INSERT INTO SCHEDULE_INFO (USER_ID, DATA_SET_ID, START_TIME, `REPEAT`, REFRESH_ON)
+        VALUES (#{userId}, #{dataSetId}, STR_TO_DATE(#{startTime}, '%Y-%m-%d %H:%i'), #{repeat}, #{refreshOn})
+    </insert>
+
+    <select id="selectDataSetScheduleOnetime" parameterType="Map" resultType="int">
+        SELECT COUNT(1) FROM SCHEDULE_ONETIME_INFO WHERE USER_ID = #{userId} AND DATA_SET_ID = #{dataSetId} AND IS_END = 'N'
+    </select>
+
+    <insert id="insertDataSetScheduleOnetime" useGeneratedKeys="true" keyProperty="id" parameterType="Map">
+        INSERT INTO SCHEDULE_ONETIME_INFO (USER_ID, DATA_SET_ID) VALUES (#{userId}, #{dataSetId})
+    </insert>
+
+    <delete id="deleteDataSetScheduleOnetime" parameterType="String">
+        DELETE FROM SCHEDULE_ONETIME_INFO WHERE ID = ${value}
+    </delete>
+
+    <select id="getDataSetScheduleCount" parameterType="List" resultType="Map">
+        SELECT A.DATA_SET_ID AS id, B.CNT AS cnt FROM
+          (SELECT DATA_SET_ID FROM SCHEDULE_INFO WHERE DATA_SET_ID IN
+          <foreach collection="list" item="data" index="index" open="(" close=")" separator=",">
+            #{data}
+          </foreach>
+          ) A
+          LEFT JOIN (SELECT DATA_SET_ID, COUNT(1) AS CNT FROM SCHEDULE_INFO GROUP BY DATA_SET_ID) B ON A.DATA_SET_ID = B.DATA_SET_ID
+    </select>
+</mapper>

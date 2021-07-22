@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="utf-8">
+	<title>ExportChart</title>
+	<style>
+		html, body { width:100%; height:100%; }
+		table { width: 100%; border: 1px solid #000; border-collapse: collapse; }
+		th, td { border: 1px solid #000; }
+		button { position: absolute; top: 20px; left: 20px; }
+	</style>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/amcharts.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/funnel.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/pie.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/radar.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/serial.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/themes/black.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/themes/chalk.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/themes/dark.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/themes/light.js"></script>
+	<script src="#service-domain#/common-module/ext_libs/amcharts/themes/patterns.js"></script>
+</head>
+<body>
+	<!-- If you need to resize the chart, please change the style. -->
+	<div id="chartdiv" style="width: 100%; height: 100%"></div>
+	<button type="button" onclick="update()">Refresh</button> 
+</body>
+<script>
+	var data = {};
+	function makechart() {
+		if (data.type == 'table') {
+			var tableData = data.dataProvider;
+			function addHeaders(table, keys) {
+				var row = table.insertRow();
+				for (var i = 0; i < keys.length; i++) {
+					var cell = row.insertCell();
+					cell.appendChild(document.createTextNode(keys[i]));
+				}
+			}
+			var table = document.createElement('table');
+			for (var i = 0; i < tableData.length; i++) {
+				var child = tableData[i];
+				if (i === 0) {
+					addHeaders(table, Object.keys(child));
+				}
+				var row = table.insertRow();
+				Object.keys(child).forEach(function(k) {
+					var cell = row.insertCell();
+					cell.appendChild(document.createTextNode(child[k]));
+				})
+			}
+			document.getElementById('chartdiv').appendChild(table);
+		} else {
+			AmCharts.makeChart( "chartdiv", data);
+		}
+	}
+	
+	function update() {
+		var url = '#api#/analysis/export?exportToken=' + encodeURIComponent('#token#');
+	    var xhr = new XMLHttpRequest();
+	    xhr.open('GET', url, true);
+	    xhr.setRequestHeader('Content-Type', 'application/json');
+	    xhr.onreadystatechange = function() {
+	        if (xhr.readyState === 4) {
+	            if (xhr.status === 200 || (xhr.status === 0 && xhr.responseText !== '')) {
+	                var response = JSON.parse(xhr.responseText);
+	                if (response.hasOwnProperty('data')) {
+	                	data = response.data;
+	                	makechart();
+	                } else {
+	                	alert(xhr.responseText)
+	                }
+	            }
+	            else {
+	            	alert(xhr.responseText);
+	            }
+	        }
+	    };
+	    xhr.send();
+	}
+	update();
+</script>
+</html>

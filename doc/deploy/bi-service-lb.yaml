@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: bi-backend
+  namespace: aiip-bi
+  labels:
+    app: bi-backend
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8090
+  selector:
+    app: bi-backend
+  type: LoadBalancer

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>ExportChart</title>
+    <style>
+        @import url(http://fonts.googleapis.com/earlyaccess/notosanskr.css);
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Noto Sans KR', sans-serif;
+
+        }
+
+        table {
+            margin: 10px;
+            width: calc(100% - 20px);
+            border-collapse: collapse;
+        }
+
+        th {
+
+        }
+
+        tr:first-child td {
+            color: #4C4C4C;
+            font-size: 14px;
+            font-weight: bold;
+            border-bottom: 1px solid #aaaaaa;
+            border-top: 1px solid #aaaaaa;
+            height: 38px;
+
+        }
+
+        td {
+            font-size: 14px;
+            color: #6D6D6D;
+            border-top: 1px solid #cecece;
+            border-right: 1px solid #cecece;
+            border-bottom: 1px solid #cecece;
+            text-align: center;
+            height: 36px;
+        }
+
+        td:last-child {
+            border-right: none;
+        }
+        .btnA{
+            padding: 10px;
+            height: 60px;
+            overflow: hidden;
+        }
+        .btn {
+            margin: 5px;
+            float: left;
+            background: #5b606c;
+            color: #FFFFFF;
+            height: 30px;
+            font-size: 12px;
+            line-height: 1.5;
+            border-radius: 1px;
+            padding: 6px 10px;
+            cursor: pointer;
+            min-width: 66px;
+            text-align: center;
+            user-select: none;
+        }
+        .btn:hover{
+            background: #46484E;
+        }
+
+        .btn.save {
+            left: 90px;
+        }
+
+        .data-empty {
+            position: fixed;
+            width: 100%;
+            height: calc(100% - 30px);
+            margin-top: 30px;
+            display: table;
+            text-align: center;
+        }
+
+        .data-empty-wrapper {
+            font-size: 13px;
+            line-height: 1.5;
+            color: black;
+            display: table-cell;
+            vertical-align: middle;
+        }
+    </style>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/amcharts.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/funnel.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/pie.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/radar.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/serial.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/themes/black.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/themes/chalk.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/themes/dark.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/themes/light.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/themes/patterns.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/core.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/charts.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/plugins/wordCloud.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/themes/animated.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/themes/material.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/themes/dark.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/themes/frozen.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/themes/kelly.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts4/themes/spiritedaway.js"></script>
+    <script src="#service-domain#/common-module/ext_libs/amcharts/plugins/export/libs/FileSaver.js/FileSaver.js"></script>
+
+</head>
+<body>
+<!-- If you need to resize the chart, please change the style. -->
+<div class="btnA">
+    <div class="btn" onclick="update()">Refresh</div>
+  <!--  <div class="btn save" onclick="save()">Export to CSV(Chart Data)</div>-->
+    <div class="btn save" onclick="save2()">Export to CSV(Raw Data)</div>
+</div>
+<div id="chartdiv" style="width: 100%; height: calc(100% - 70px); display: block"></div>
+<div id="empty" class="data-empty" style="display: none">
+    <div class="data-empty-wrapper">
+        <div>조회할 데이터가 없습니다.</div>
+    </div>
+</div>
+<div id="delete" class="data-empty" style="display: none">
+    <div class="data-empty-wrapper">
+        <div>삭제된 차트입니다.</div>
+    </div>
+</div>
+</body>
+<script>
+    var data = {};
+
+    function makechart() {
+        if (data.type == 'table' || data.type == 'table-grouped') {
+            var tableData = data.dataProvider;
+
+            function addHeaders(table, keys) {
+                var row = table.insertRow();
+                for (var i = 0; i < keys.length; i++) {
+                    var cell = row.insertCell();
+                    cell.appendChild(document.createTextNode(keys[i]));
+                }
+            }
+            const elements = document.getElementsByTagName("table");
+            while (elements[0]) elements[0].parentNode.removeChild(elements[0]);
+            var table = document.createElement('table');
+            for (var i = 0; i < tableData.length; i++) {
+                var child = tableData[i];
+                if (i === 0) {
+                    addHeaders(table, Object.keys(child));
+                }
+                var row = table.insertRow();
+                Object.keys(child).forEach(function (k) {
+                    var cell = row.insertCell();
+                    cell.appendChild(document.createTextNode(child[k]));
+                })
+            }
+            document.getElementById('chartdiv').appendChild(table);
+        } else {
+            if ("WordCloudSeries" == data.type) {
+                switch (data.themes) {
+                    case 'material':
+                        am4core.unuseAllThemes();
+                        am4core.useTheme(am4themes_material);
+                        break;
+                    case 'dark':
+                        am4core.unuseAllThemes();
+                        am4core.useTheme(am4themes_dark);
+                        break;
+                    case 'animated':
+                        am4core.unuseAllThemes();
+                        am4core.useTheme(am4themes_animated);
+                        break;
+                    case 'frozen':
+                        am4core.unuseAllThemes();
+                        am4core.useTheme(am4themes_frozen);
+                        break;
+                    case 'kelly':
+                        am4core.unuseAllThemes();
+                        am4core.useTheme(am4themes_kelly);
+                        break;
+                    case 'spiritedaway':
+                        am4core.unuseAllThemes();
+                        am4core.useTheme(am4themes_spiritedaway);
+                        break;
+                    case 'dataviz':
+                        am4core.unuseAllThemes();
+                        am4core.useTheme(am4themes_dataviz);
+                        break;
+                }
+
+                chart = am4core.create("chartdiv", am4plugins_wordCloud.WordCloud);
+                const series = chart.series.push(new am4plugins_wordCloud.WordCloudSeries());
+                series.data = Object.assign(data.dataProvider).sort(function (a, b) {
+                    b['weight'] - a['weight']
+                }).slice(0, data.maxCount);
+                series.dataFields.word = 'tag';
+                series.dataFields.value = 'weight';
+
+                series.labels.template.tooltipText = "{word}:\n[bold]{value}[/]";
+                series.accuracy = data.accuracyCnt;
+                series.randomness = data.randomnessCnt;
+                series.maxFontSize = am4core.percent(data.maxFontSize);
+                series.minFontSize = am4core.percent(data.minFontSize);
+                series.labels.template.fill = am4core.color(data.color);
+                series.labelsContainer.rotation = data.rotation;
+
+                series.interpolationDuration = 0;
+
+                if (data.autoColor) {
+                    series.colors = new am4core.ColorSet();
+                    series.colors.passOptions = {};
+                }
+            }
+            else {
+                AmCharts.makeChart("chartdiv", data);
+            }
+        }
+    }
+
+    function update() {
+        var url = '#api#/analysis/export?exportToken=' + encodeURIComponent('#token#');
+        var param = '#variable#';
+        var urlTemp = variable(url, param);
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', urlTemp, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200 || (xhr.status === 0 && xhr.responseText !== '')) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.hasOwnProperty('data')) {
+                        data = response.data;
+                        console.log(data);
+                        if (data.dataProvider.length < 1) {
+                            document.getElementById("chartdiv").style.display = "none";
+                            document.getElementById("empty").style.display = "table";
+                        } else {
+                            document.getElementById("chartdiv").style.display = "table";
+                            document.getElementById("empty").style.display = "none";
+                        }
+                        makechart();
+                    } else {
+                        alert(xhr.responseText)
+                    }
+                }
+                else {
+                    var message = JSON.parse(xhr.responseText);
+                    if(message.exceptionMessage === "Incorrect result size: expected 0, actual 0"){
+                        document.getElementById("chartdiv").style.display = "none";
+                        document.getElementById("delete").style.display = "table";
+                    } else {
+                        alert(xhr.responseText);
+                    }
+                }
+            }
+        };
+        xhr.send();
+    }
+    function variable(url, param) {
+        if (location.search === null && location.search === undefined && location.search === '') {
+            if (param !== undefined && param !== null && param !== '') {
+                JSON.parse(param).forEach(function (value) {
+                    if (value.type === "STRING[]") {
+                        let temp = '';
+                        value.value.split(',').forEach(function (v, ind, array) {
+                            if (ind === array.length - 1) {
+                                temp += '\'' + v + '\'';
+                            } else {
+                                temp += '\'' + v + '\',';
+                            }
+                        });
+                        url += '&' + value.name + '=' + temp;
+                    } else if (value.type === "STRING") {
+                        url += '&' + value.name + '=' + '\'' + value.value + '\'';
+                    } else {
+                        url += '&' + value.name + '=' + value.value;
+                    }
+                });
+            }
+        } else {
+            url += '&' + location.search.substring(1, location.search.length);
+        }
+        return url;
+    }
+
+    function save() {
+        const items = data.dataProvider;
+        const replacer = function (key, value) {
+            return value === null ? '' : value;
+        };
+        let header = null;
+        if (data.type == 'table' || data.type == 'table-grouped'){
+            header = Object.keys(items[0]);
+        } else {
+            header = ['category'];
+            data.graphs.forEach(function (value) {
+                header.push(value.valueField);
+            });
+        }
+        let csv = items.map(function (row) {
+            return header.map(function (fieldName) {
+                return JSON.stringify(row[fieldName], replacer)
+            }).join(',');
+        });
+        csv.unshift(header.join(','));
+        csv = csv.join('\r\n');
+        const url = decodeURI(location.pathname);
+        const fileName = url.substring(url.lastIndexOf('/') + 1).split('.html')[0];
+        saveAs(new Blob([csv], {type: 'text/plain;charset=utf-8'}), fileName.trim() !== '' ? fileName + '.csv' : 'amchart.csv');
+    }
+    function save2() {
+        var url = '#api#/analysis/export/csv?exportToken=' + encodeURIComponent('#token#');
+        var param = '#variable#';
+        var urlTemp = variable(url, param);
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', urlTemp, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200 || (xhr.status === 0 && xhr.responseText !== '')) {
+                    var response = JSON.parse(xhr.responseText);
+                    const items = JSON.parse(response.data);
+                    const replacer = function (key, value) {
+                        return value === null ? '' : value;
+                    };
+                    const header = Object.keys(items[0]);
+                    let csv = items.map(function (row) {
+                        return header.map(function (fieldName) {
+                            return JSON.stringify(row[fieldName], replacer)
+                        }).join(',');
+                    });
+                    csv.unshift(header.join(','));
+                    csv = csv.join('\r\n');
+                    const url = decodeURI(location.pathname);
+                    const fileName = url.substring(url.lastIndexOf('/') + 1).split('.html')[0];
+                    saveAs(new Blob([csv], {type: 'text/plain;charset=utf-8'}), fileName.trim() !== '' ? fileName + '.csv' : 'amchart.csv');
+                } else {
+                    alert(xhr.responseText);
+                }
+            }
+        };
+        xhr.send();
+    }
+    update();
+</script>
+</html>

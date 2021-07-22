@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bi-backend
+  namespace: aiip-bi
+spec:
+  selector:
+    matchLabels:
+      app: bi-backend
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bi-backend
+    spec:
+      volumes:
+        - name: efs
+          persistentVolumeClaim:
+            claimName: bi-efs
+      containers:
+        - name: bi-backend
+          image: harbor.accuinsight.net/aiip/bi-backend:20210719a
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: efs
+              mountPath: /livy-files
+          ports:
+            - containerPort: 8090
+              name: besvc
+          readinessProbe:
+            tcpSocket:
+              port: 8090
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: DB_HOST
+            - name: BASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: BASE_DATABASE
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: DB_PASSWORD
+            - name: RSA_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: RSA_PUBLIC_KEY
+            - name: SUMMARY_DB
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: SUMMARY_DB
+            - name: SUMMARY_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: SUMMARY_DB_USERNAME
+            - name: SUMMARY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bi-backend-secret
+                  key: SUMMARY_DB_PASSWORD
+            - name: PIPELINE_API
+              valueFrom:
+                configMapKeyRef:
+                  name: bi-backend-config
+                  key: PIPELINE_API
+            - name: RUNTIME_API
+              valueFrom:
+                configMapKeyRef:
+                  name: bi-backend-config
+                  key: RUNTIME_API
+            - name: FILE_MANAGER_API
+              valueFrom:
+                configMapKeyRef:
+                  name: bi-backend-config
+                  key: FILE_MANAGER_API
+            - name: ICOS_API
+              valueFrom:
+                configMapKeyRef:
+                  name: bi-backend-config
+                  key: ICOS_API
+      imagePullSecrets:
+        - name: reg-secret

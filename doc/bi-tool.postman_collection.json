@@ -1,0 +1,50 @@
+{
+	"info": {
+		"_postman_id": "fa3f632f-92cd-4c43-b4a2-512a64882456",
+		"name": "bi-tool",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "http://localhost:8080/analytics/chart/data/3",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJjb3JlOmFsbCJdLCJleHAiOjE2MjYzMTI4MzEsImF1dGhvcml0aWVzIjpbIlJPTEVfTVlfQ0xJRU5UIl0sImp0aSI6IjhlOThkMDU3LTc5Y2YtNGQ3NS1hYzM0LWQ5OWNmYjFmMzE5YiIsImNsaWVudF9pZCI6ImJpZ2RhdGFfcG9jIn0.Cd_PyvgjJi_75shRCFRAZGYu4z_CR3tHr1Ncmr0dM4X4n1acJbBGSyxHigTGyakKF_lpF8-kwz1ON-5fBLyPfFIKzejjo4FIbAX9dv2LYialpfK7WehEN9tk0lRDXeyk7FzHPqcmxvfjSxM4RKuJ1uCZqMueHx23EizZ3wF_4cKfrHn7iYsiCMgySAYje4mkA63tGDcHFiPppXeDvPR9uew8riJOckMQaI-4fgfXCupDpErjws35rPdn-9qi_ZIo6TNg8RtJEALYXzqKE1gZ9Da6iN4c3YSRmJz3sYilZiPTVKotpwAAN8dlfYcF3_h1Ec7BrykYOcaVzoPE1ff8nA",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"chart\": 6,\n    \"name\": null,\n    \"option\": null,\n    \"type\": \"serial\",\n    \"valueInfo\": {\n        \"axis\": null,\n        \"flag\": null,\n        \"group\": \"MODEL_NM\",\n        \"line\": null,\n        \"value\": null\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/analytics/chart/data/3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"analytics",
+						"chart",
+						"data",
+						"3"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

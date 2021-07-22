@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sk.bds.datainsight.database.dao.UserDao">
+    <select id="getUserById" parameterType="int" resultType="com.sk.bds.datainsight.database.model.User">
+        SELECT * FROM USER WHERE ID = #{id}
+    </select>
+
+    <select id="getUserBySsoId" parameterType="String" resultType="com.sk.bds.datainsight.database.model.User">
+        SELECT * FROM USER WHERE SSO_ID = #{id}
+    </select>
+
+    <select id="getUsers" parameterType="int" resultType="Map">
+        SELECT ID AS id, SSO_ID AS ssoId FROM USER WHERE ID <![CDATA[<>]]> #{id}
+    </select>
+
+    <select id="getUserDbName" parameterType="int" resultType="String">
+        SELECT DB_NAME FROM USER WHERE ID = #{id}
+    </select>
+
+    <insert id="insertUser" parameterType="Map">
+        INSERT INTO USER (SSO_ID, LIMIT_SIZE, DB_URL, DB_PORT, DB_ID, DB_PWD, DB_NAME)
+        VALUES (#{ssoId}, #{limitSize}, #{dbUrl}, #{dbPort}, #{dbId}, #{dbPwd}, #{dbName})
+    </insert>
+
+    <select id="getTableData" parameterType="String" resultType="Map">
+        SELECT * FROM ${value}
+    </select>
+</mapper>

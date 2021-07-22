@@ -1,0 +1,16 @@
+
+version: '2'
+services:
+  datainsight-core-api: #랜처 dpcore스택 (그룹)안에서 사용핧 서비스컨테이너명
+    image: registry.dataplatform.io/dpcore/datainsight-core-api-stg:latest
+    hostname: datainsight-core-api               #도커클라이언트서버의 호스트명
+    ports:
+    - 8080/tcp               #호스트서버포트:도커클라이언트서버포트 expose포트들 기입
+    stdin_open: true
+    tty: true                     #using bash TTY mode (pseudo-TTY)
+    cpu_shares: 1024              #default cpu shares constant
+    # volumes:
+    # - /log_data/dhp:/log_data/dhp  #로그들의 경로는 호스트 서버의 log_data/app이름 이며, 도커 클라이언트서버의 볼륨마운트를 호스트로 뺍니다.
+    labels:
+      io.rancher.scheduler.affinity:host_label: dev02=02
+      io.rancher.container.pull_image: always   # latest태그 이미지가 배포 서버에 존재해도 기동 전에 항상 pull합니다.

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bi-backend-config
+  namespace: aiip-bi
+data:
+  FILE_MANAGER_API: core-file-manager.aiip-common.svc.cluster.local:7090
+  PIPELINE_API: pipeline-backend-svc-lb.aiip-pipeline.svc.cluster.local:8080
+  RUNTIME_API: core.aiip-runtime.svc.cluster.local:17005
+  ICOS_API: http://169.56.124.28:7070/api/v1/util/icos
+
+

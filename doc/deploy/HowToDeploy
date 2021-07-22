@@ -1,0 +1,34 @@
+---
+# build image
+
+mvn clean package -DskipTests=true -P dev
+docker image build -f ./Dockerfile -t bi-backend:20210719b .
+docker tag bi-backend:20210719b harbor.accuinsight.net/aiip/bi-backend:20210719b
+docker push harbor.accuinsight.net/aiip/bi-backend:20210719b
+
+---
+# secret 생성
+1. docker pull secret
+kubectl create secret docker-registry {secret 명} -n {namespace 명} --docker-server={서버 ip:포트} --docker-username={id} --docker-password={패스워드} --docker-email=noreply@accuinsight.com
+ex) kubectl create secret docker-registry {bi-backend-secret} -n {aiip-bi} --docker-server={harbor.accuinsight.net} --docker-username={admin} --docker-password={‘Harbor12345’} --docker-email={noreply@accuinsight.com}
+(-> {} 부분을 환경에 맞도록 대체 )
+kubectl create secret docker-registry reg-secret -n aiip-bi --docker-server=harbor.accuinsight.net --docker-username=admin --docker-password=‘Harbor12345’ --docker-email=noreply@accuinsight.com
+
+2. application.properties 용 secret 생성
+-> bi-backend-secret.yaml : 파일의 내용을 환경에 맞게 업데이트
+-> bi-backend-secret.yaml 에 추가/삭제된 내용이 있을 경우 application.properties에 반영 필요함
+-> kubectl apply -f bi-backend-secret.yaml
+
+3. application.properties 용 config 생성
+-> bi-backend-config.yaml
+-> kubectl apply -f bi-backend-config.yaml
+
+4. pvc 생성
+-> kubectl apply -f dev-pvc.yaml
+
+5. LB 유형의 service 생성
+-> kubectl apply -f bi-service-lb.yaml
+
+5. back-end 배포
+-> kubectl apply -f k8s-deployment.dev-bi.yaml
+(배포된 이미지 확인하여 변경할 것 !!!)

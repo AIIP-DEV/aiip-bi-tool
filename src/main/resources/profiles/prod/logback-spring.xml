@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <property name="LOG_DIR" value="./logs" />
+    <property name="LOG_FILE_TRACE" value="${LOG_DIR}/data-trace.log" />
+    <property name="LOG_FILE_DEBUG" value="${LOG_DIR}/data-debug.log" />
+    <property name="LOG_FILE_INFO" value="${LOG_DIR}/data-info.log" />
+    <property name="DATE_STAMP" value="yyyy-MM-dd/HH:mm:ss.SSS" />
+    <!-- TRACE FILE Appender -->
+    <appender name="FILE_TRACE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>TRACE</level>
+        </filter>
+        <file>${LOG_FILE_TRACE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE_TRACE}.%d{yyyy-MM-dd}</fileNamePattern>
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{${DATE_STAMP}} %5p [%-4.4t] %C (%F:%L\) - %m%n</pattern>
+        </encoder>
+    </appender>
+    <!-- DEBUG FILE Appender -->
+    <appender name="FILE_DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <file>${LOG_FILE_DEBUG}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE_DEBUG}.%d{yyyy-MM-dd}</fileNamePattern>
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{${DATE_STAMP}} %5p [%-4.4t] %C (%F:%L\) - %m%n</pattern>
+        </encoder>
+    </appender>
+    <!-- TRACE INFO Appender -->
+    <appender name="FILE_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <file>${LOG_FILE_INFO}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE_INFO}.%d{yyyy-MM-dd}</fileNamePattern>
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{${DATE_STAMP}} %5p [%-4.4t] %C (%F:%L\) - %m%n</pattern>
+        </encoder>
+    </appender>
+    <!-- Console Appender -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%d{${DATE_STAMP}} %5p [%-4.4t] %C (%F:%L\) - %m%n</pattern>
+        </layout>
+    </appender>
+
+    <root level="TRACE">
+        <!--<appender-ref ref="FILE_TRACE" />-->
+        <!--<appender-ref ref="FILE_DEBUG" />-->
+        <appender-ref ref="FILE_INFO" />
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
