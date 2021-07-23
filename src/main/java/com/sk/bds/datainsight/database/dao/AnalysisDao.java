@@ -285,13 +285,13 @@ public class AnalysisDao {
         return jdbcTemplate.query(String.format(SqlMap.Analysis.SELECT_ANALYSIS_FILTER_GROUP, id), new AnalysisFilterGroup());
     }
 
-    public Number insertAnalysisChart(AnalysisChart item) throws SQLException, JsonProcessingException {
+    public Number insertAnalysisChart(AnalysisChart item) throws Exception {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         namedParameterJdbcTemplate.update(SqlMap.Analysis.INSERT_ANALYSIS_CHART, item.getParameter(), keyHolder);
         return keyHolder.getKey();
     }
 
-    public void updateAnalysisChart(AnalysisChart item) throws SQLException, JsonProcessingException {
+    public void updateAnalysisChart(AnalysisChart item) throws Exception {
         namedParameterJdbcTemplate.update(SqlMap.Analysis.UPDATE_ANALYSIS_CHART, item.getParameter());
     }
 

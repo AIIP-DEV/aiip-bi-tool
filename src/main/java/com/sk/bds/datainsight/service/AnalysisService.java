@@ -510,7 +510,7 @@ public class AnalysisService {
             int dashboardDataSetId = targetDao.insertDashboardDataSet(new DashboardDataSet(paramDataSet));
             List<AnalysisChart> list = dao.getAnalysisChart(analysisId);
             for (AnalysisChart chart : list) {
-                targetDao.insertDashboardChart(new DashboardChart(dashboardId, dashboardDataSetId, chart));
+//                targetDao.insertDashboardChart(new DashboardChart(dashboardId, dashboardDataSetId, chart));
             }
             targetDao.transactionEnd();
         } catch (BadException be) {
@@ -535,7 +535,7 @@ public class AnalysisService {
         String result = "#token#";
         ByteArrayInputStream stream = new ByteArrayInputStream(result.getBytes());
         InputStreamResource resource = new InputStreamResource(stream);
-        String accessKey = (String) param.get("accessKey");
+        String accessKey = (String)param.get("accessKey");
         try {
             if (accessKey != null) {
                 ClassPathResource htmlRes = new ClassPathResource("dynamic-chart.html");
@@ -653,15 +653,11 @@ public class AnalysisService {
 
             result.put("option", option);
             Map<String, Object> drawOption = new HashMap<>();
-//            drawOption.putAll(option);
-//            drawOption.remove("dataProvider");
-//            result.put("drawOption", drawOption);
             return result;
         } finally {
             dao.close();
         }
     }
-
     public Object getSampleData(int userId, String analysisId) throws Exception {
         AnalysisDao dao = getDao(userId);
         try {

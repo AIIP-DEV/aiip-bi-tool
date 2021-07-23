@@ -8,8 +8,10 @@ import com.sk.bds.datainsight.database.dao.AnalysisDao;
 import com.sk.bds.datainsight.database.dao.SettingDao;
 import com.sk.bds.datainsight.database.dao.UserDao;
 import com.sk.bds.datainsight.database.model.*;
+import com.sk.bds.datainsight.echart.OptionHelper;
 import com.sk.bds.datainsight.exception.BadException;
 import com.sk.bds.datainsight.exception.InternalException;
+import com.sk.bds.datainsight.util.Constants;
 import com.sk.bds.datainsight.util.DataConverter;
 import com.sk.bds.datainsight.util.DataSourceManager;
 import com.sk.bds.datainsight.util.Util;
@@ -645,7 +647,11 @@ public class AnalyticsService {
         ObjectMapper mapper = new ObjectMapper();
         param.put("analysisId", analysisId);
         Number key;
-        HashMap hashMap = mapper.readValue(param.get("option").toString(), new TypeReference<Map<String, Object>>() {});
+
+        OptionHelper optionHelper = OptionHelper.of((Map<String, Object>) param.get(Constants.ECHART_GET_OPTION), (String) param.get("type"));
+        HashMap hashMap = mapper.readValue(optionHelper.toJson(), new TypeReference<Map<String, Object>>() {});
+
+//        HashMap hashMap = mapper.readValue(param.get("option").toString(), new TypeReference<Map<String, Object>>() {});
         Object originOption = hashMap.clone();
         try {
             HashMap<String, Object> result = new HashMap<>();
@@ -798,7 +804,11 @@ public class AnalyticsService {
                     .split(",");
             for (int i = 0; i < split.length; i++) {
                 CSV_DATA_NAME.add(split[i]);
-                CSV_DATA_VALUE.add(split[++i]);
+                try {
+                    CSV_DATA_VALUE.add(split[++i]);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             PrintWriter writer = response.getWriter();

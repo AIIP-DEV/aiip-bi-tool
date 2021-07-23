@@ -5,6 +5,7 @@ import com.sk.bds.datainsight.database.dao.AnalysisDao;
 import com.sk.bds.datainsight.database.dao.DashboardDao;
 import com.sk.bds.datainsight.database.dao.SettingDao;
 import com.sk.bds.datainsight.database.model.*;
+import com.sk.bds.datainsight.echart.OptionHelper;
 import com.sk.bds.datainsight.echart.PolarTwoValueAxes;
 import com.sk.bds.datainsight.exception.BadException;
 import com.sk.bds.datainsight.exception.InternalException;
@@ -574,7 +575,7 @@ public class ChartService {
             case COLUMN_STACKED_100:
             case COLUMN_CLUSTERED_LINE:
             case COLUMN:
-                return createAxisValueChartData(dao, chart, chartType, fieldColumn, analysisData, analysisId, userId);
+                return createAxisValueChartDataV2(dao, chart, chartType, fieldColumn, analysisData, analysisId, userId);
             case RADAR:
                 return createGroupValueChartData(dao, chart, chartType, fieldColumn, analysisData, analysisId, userId); // amchart
             case POLAR:
@@ -786,7 +787,9 @@ public class ChartService {
             for (Map<String, Object> temp : getQueryList) {
                 Map<String, Object> indicatorData = new HashMap<>();
 //                Map<String, Object> seriesData = new HashMap<>();
-                indicatorData.put("name", temp.get(fieldColumnGroup.get("name")).toString());
+                indicatorData.put("name", temp.get(
+                        Optional.ofNullable(fieldColumnGroup.get("name")).orElse(""))
+                );
                 list.add((Long) temp.get("cnt"));
                 indicatorList.add(indicatorData);
 //                seriesList.add(seriesData);
@@ -868,7 +871,10 @@ public class ChartService {
             for (Map<String, Object> temp : getQueryList) {
                 Map<String, Object> tempData = new HashMap<>();
                 tempData.put("value", temp.get("cnt"));
-                tempData.put("name", temp.get(fieldColumnGroup.get("name")).toString());
+                tempData.put("name", temp.get(
+                        Optional.ofNullable(fieldColumnGroup.get("name")).orElse(""))
+
+                );
                 mapList.add(tempData);
             }
 
@@ -1029,6 +1035,90 @@ public class ChartService {
             List<String> tempList = new ArrayList<>();
             for (Map<String, Object> temp : getQueryList) {
                 tempList.add(temp.get(axis.get("name")).toString());
+            }
+
+            if (chart.getType().equals("COLUMN")) {
+                yAxis.put("data", tempList);
+                data.put("type", "bar");
+            } else if (chart.getType().equals("AREA")) {
+                data.put("type", "line");
+            } else {
+                xAxis.put("data", tempList);
+                data.put("type", chart.getType().toLowerCase(Locale.ROOT));
+            }
+
+            List<Long> seriesData = new ArrayList<>();
+            for (Map<String, Object> temp : getQueryList) {
+                seriesData.add((Long)temp.get("cnt"));
+            }
+            options.remove("series");
+            data.put("data", seriesData);
+
+            series.addAll(Collections.singletonList(data));
+            options.put("series", series);
+        }
+        makeChart(chartData, chart, null);
+        return chartData.get("option");
+    }
+
+    private Object createAxisValueChartDataV2(AnalysisDao dao, Chart chart, ChartType chartType, Map<String, Object> fieldColumn, List<Map<String, Object>> analysisData, String analysisId, String userId) {
+        OptionHelper optionHelper = OptionHelper.of((Map<String, Object>) chart.getOption(), chart.getType());
+
+        Map<String, Object> chartData = chart.getData();
+        chartData.put("graphs", new ArrayList<String>());
+        chartData.put("lines", new ArrayList<String>());
+        Map<String, Object> dataMap = new HashMap<>();
+        Map<String, Object> axis = (Map<String, Object>) fieldColumn.get("axis");
+        Map<String, Object> group = (Map<String, Object>) fieldColumn.get("group");
+        Map<String, Object> line = (Map<String, Object>) fieldColumn.get("line");
+        List<Map<String, Object>> valueList = (List<Map<String, Object>>) fieldColumn.get("value");
+//        Map<String, Object> xAxis = new HashMap<>();
+//        Map<String, Object> yAxis = new HashMap<>();
+        Map<String, Object> options = (Map<String, Object>) chart.getOption();
+        Map<String, Object> data = new HashMap<>();
+
+        Map<String, Object> xAxis = optionHelper.getXAxis();
+        Map<String, Object> yAxis = optionHelper.getYAxis();
+        if (chart.getType().equals("AREA")) {
+            optionHelper.putWhereThen(Constants.ECHART_XAXIS, "type", "category")
+                    .putWhereThen(Constants.ECHART_XAXIS, "boundaryGap", false)
+                    .putWhereThen(Constants.ECHART_XAXIS, "type", "value");
+
+
+            optionHelper.putThen("xAxis", xAxis)
+                    .putThen("yAxis", yAxis);
+            optionHelper.putWhereThen("option", Constants.ECHART_XAXIS, xAxis)
+                    .putWhereThen(Constants.ECHART_OPTION, Constants.ECHART_YAXIS, yAxis);
+            data.put("areaStyle", "{}");
+        } else {
+            xAxis = (Map<String, Object>) options.get("xAxis");
+            yAxis = (Map<String, Object>) options.get("yAxis");
+        }
+
+//        List<Map<String, Object>> originSeries = (List<Map<String, Object>>) options.get("series");
+//
+//        for (Map.Entry entry : originSeries.get(0).entrySet()) {
+//            data.put(entry.getKey().toString(), entry.getValue());
+//        }
+
+        List<Map<String, Object>> series = new ArrayList<>();
+
+        if (axis != null) {
+            List<Map<String, Object>> getQueryList = new ArrayList<>();
+
+            try {
+                getQueryList = dao.getColumnGroupBy(chart.getValueInfo().getAxis(), dao.getDataTable(userId, "ANALYSIS", analysisId));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            List<String> tempList = new ArrayList<>();
+            for (Map<String, Object> temp : getQueryList) {
+                String nameValue = "";
+                if (Objects.nonNull(temp.get(axis.get("name")))) {
+                    nameValue = temp.get(axis.get("name")).toString();
+                }
+                tempList.add(nameValue);
             }
 
             if (chart.getType().equals("COLUMN")) {

@@ -49,6 +49,8 @@ public class Util {
     public static final int DASHBOARD_LIST = 2;
     public static final int GROUP_LIST = 3;
     public static final int QUERY_LIST = 4;
+    public static final int REPORT_LIST = 5;
+
 
     enum DATA_SET {
         ID("id", "ID"),
@@ -138,6 +140,33 @@ public class Util {
             for (DASHBOARD dashboard : DASHBOARD.values()) {
                 if (dashboard.name.equals(name)) {
                     return dashboard.value;
+                }
+            }
+            return null;
+        }
+    }
+
+    enum REPORT {
+        ID("id", "ID"),
+        NAME("name", "NAME"),
+        CREATE_USER("createUser", "CREATE_USER"),
+        UPDATE_DATE("updateDate", "UPDATE_DATE"),
+        CREATE_DATE("createDate", "CREATE_DATE"),
+        GROUP_NAME("groupName", "GROUP_NAME"),
+        GROUP_ID("groupId", "GROUP_ID");
+
+        private String name;
+        private String value;
+
+        REPORT(String name, String value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        public static String getValue(String name) {
+            for (REPORT report : REPORT.values()) {
+                if (report.name.equals(name)) {
+                    return report.value;
                 }
             }
             return null;
@@ -536,6 +565,9 @@ public class Util {
                 case DASHBOARD_LIST:
                     orderBy = String.format("ORDER BY %s %s", DASHBOARD.getValue(key), sort.optString(key));
                     break;
+                case REPORT_LIST:
+                    orderBy = String.format("ORDER BY %s %s", REPORT.getValue(key), sort.optString(key));
+                    break;
                 case GROUP_LIST:
                     orderBy = String.format("ORDER BY %s %s", GROUP.getValue(key), sort.optString(key));
                     break;
@@ -581,6 +613,9 @@ public class Util {
                         case DASHBOARD_LIST:
                             sb.append(String.format("`%s` = '%s'", DASHBOARD.getValue(filter.optString("key")), value));
                             break;
+                        case REPORT_LIST:
+                            sb.append(String.format("`%s` = '%s'", REPORT.getValue(filter.optString("key")), value));
+                            break;
                         case GROUP_LIST:
                             sb.append(String.format("`%s` = '%s'", GROUP.getValue(filter.optString("key")), value));
                             break;
@@ -598,6 +633,9 @@ public class Util {
                             break;
                         case DASHBOARD_LIST:
                             sb.append(String.format("`%s` REGEXP '%s'", DASHBOARD.getValue(filter.optString("key")), value));
+                            break;
+                        case REPORT_LIST:
+                            sb.append(String.format("`%s` REGEXP '%s'", REPORT.getValue(filter.optString("key")), value));
                             break;
                         case GROUP_LIST:
                             sb.append(String.format("`%s` REGEXP '%s'", GROUP.getValue(filter.optString("key")), value));

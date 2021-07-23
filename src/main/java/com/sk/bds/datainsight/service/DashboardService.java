@@ -126,7 +126,7 @@ public class DashboardService {
             for (AnalysisChart chart : analysisChartList) {
                 if (chartList.contains(chart.getId())) {
                     offsetY = setChartPosition(chart, offsetY, isSingleChartToAdd);
-                    dao.insertDashboardChart(new DashboardChart(dashboardId, dashboardDataSetId, chart));
+//                    dao.insertDashboardChart(new DashboardChart(dashboardId, dashboardDataSetId, chart));
                 }
             }
             insertFilterInfo(dao, filterGroup, dashboardDataSetId, dataSetId, queryId, analysis.getId());
@@ -254,7 +254,7 @@ public class DashboardService {
             for (AnalysisChart chart : analysisChartList) {
                 if (chartList.contains(chart.getId())) {
                     offsetY = setChartPosition(chart, offsetY, isSingleChartToAdd);
-                    dao.insertDashboardChart(new DashboardChart(iDashboardId, dashboardDataSetId, chart));
+//                    dao.insertDashboardChart(new DashboardChart(iDashboardId, dashboardDataSetId, chart));
                 }
             }
             insertFilterInfo(dao, filterGroup, dashboardDataSetId, dataSetId, queryId, analysis.getId());

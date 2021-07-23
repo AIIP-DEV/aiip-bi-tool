@@ -393,8 +393,6 @@ public class SqlMap {
         public static final String CREATE_REPORT = "CREATE TABLE `REPORT` ( " +
                 "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
                 "`NAME` VARCHAR(255) NOT NULL, " +
-                "`SUB_NAME` VARCHAR(255) NULL DEFAULT NULL, " +
-                "`OBJECT` BLOB NULL DEFAULT NULL, " +
                 "`THUMB_IMG` LONGTEXT NULL, " +
                 "`CREATE_USER` VARCHAR(20) NULL DEFAULT NULL, " +
                 "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
@@ -405,27 +403,14 @@ public class SqlMap {
                 "ENGINE=InnoDB";
         public static final String CREATE_REPORT_CHART = "CREATE TABLE `REPORT_CHART` ( " +
                 "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
-                "`REPORT_ID` INT(11) NULL DEFAULT NULL, " +
-                "`ANALYSIS_CHART_ID` INT(11) NULL DEFAULT NULL, " +
-                "`NAME` VARCHAR(255) NOT NULL, " +
-                "`CHART_ID` INT(11) NULL DEFAULT NULL, " +
-                "`AXIS` VARCHAR(64) NULL DEFAULT NULL, " +
-                "`VALUE` VARCHAR(64) NULL DEFAULT NULL, " +
-                "`GROUP` VARCHAR(64) NULL DEFAULT NULL, " +
-                "`LINE` VARCHAR(64) NULL DEFAULT NULL, " +
-                "`FLAG` VARCHAR(50) NULL DEFAULT NULL, " +
-                "`TYPE` VARCHAR(50) NOT NULL, " +
-                "`OPTION` TEXT NOT NULL, " +
-                "`THUMBNAIL` LONGTEXT NULL, " +
-                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`REPORT_ID` INT(11) NOT NULL, " +
+                "`ANALYSIS_CHART_ID` INT(11) NULL, " +
+                "`NAME` VARCHAR(255) NULL DEFAULT NULL, " +
+                "`DRAW_INFO` TEXT NULL DEFAULT NULL, " +
                 "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
-                "PRIMARY KEY (`ID`), " +
-                "INDEX `FK1_REPORT_CHART` (`REPORT_ID`), " +
-                "INDEX `FK2_REPORT_CHART` (`CHART_ID`), " +
-                "INDEX `FK3_REPORT_CHART` (`ANALYSIS_CHART_ID`), " +
+                "`TYPE` VARCHAR(10) NULL, " +
                 "CONSTRAINT `FK1_REPORT_CHART` FOREIGN KEY (`REPORT_ID`) REFERENCES `REPORT` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE, " +
-                "CONSTRAINT `FK2_REPORT_CHART` FOREIGN KEY (`CHART_ID`) REFERENCES `CHART_INFO` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE, " +
-                "CONSTRAINT `FK3_REPORT_CHART` FOREIGN KEY (`ANALYSIS_CHART_ID`) REFERENCES `ANALYSIS_CHART` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                "PRIMARY KEY (`ID`) " +
                 ") " +
                 "COLLATE='utf8_general_ci' " +
                 "ENGINE=InnoDB";
@@ -609,4 +594,365 @@ public class SqlMap {
         public static final String DELETE_QUERY = "DELETE FROM QUERY WHERE ID = ?";
         public static final String DELETE_QUERY_GROUP_MAPPING = "DELETE FROM GROUP_MAPPING WHERE ID = %s AND `TYPE` = 3";
     }
+
+    public class Report {
+        public static final String DROP_TABLE = "DROP TABLE `%s`";
+
+        public static final String SELECT_GROUP_BY_ID = "SELECT ID FROM `GROUP` WHERE NAME = %s";
+
+        public static final String SELECT_REPORT = "SELECT * FROM " +
+                "(SELECT * FROM " +
+                "(SELECT * FROM REPORT) S1 " +
+                "LEFT JOIN (SELECT REPORT_ID AS D_ID, COUNT(1) AS CNT_CHART FROM REPORT_CHART GROUP BY REPORT_ID) S3 ON S1.ID = S3.D_ID) A " +
+                "LEFT JOIN (SELECT ID AS M_ID, GROUP_ID FROM GROUP_MAPPING WHERE `TYPE` = 1) B ON A.ID = B.M_ID " +
+                "LEFT JOIN (SELECT ID AS G_ID, NAME AS GROUP_NAME FROM `GROUP`) C ON B.GROUP_ID = C.G_ID " +
+                "%s %s %s";
+        public static final String SELECT_REPORT_COUNT = "SELECT COUNT(1) FROM " +
+                "(SELECT * FROM " +
+                "(SELECT * FROM REPORT) S1 " +
+                "LEFT JOIN (SELECT REPORT_ID AS D_ID, COUNT(1) AS CNT_CHART FROM REPORT_CHART GROUP BY REPORT_ID) S3 ON S1.ID = S3.D_ID) A " +
+                "LEFT JOIN (SELECT ID AS M_ID, GROUP_ID FROM GROUP_MAPPING WHERE `TYPE` = 1) B ON A.ID = B.M_ID " +
+                "LEFT JOIN (SELECT ID AS G_ID, NAME AS GROUP_NAME FROM `GROUP`) C ON B.GROUP_ID = C.G_ID " +
+                "%s";
+        public static final String SELECT_REPORT_ID = "SELECT * FROM " +
+                "(SELECT * FROM REPORT WHERE ID = %s) S1 " +
+                "LEFT JOIN (SELECT REPORT_ID, COUNT(*) AS CNT_CHART FROM REPORT_CHART GROUP BY REPORT_ID) S3 ON S1.ID = S3.REPORT_ID " +
+                "LEFT JOIN (SELECT ID AS M_ID, GROUP_ID FROM GROUP_MAPPING WHERE `TYPE` = 1) S4 ON S1.ID = S4.M_ID " +
+                "LEFT JOIN (SELECT ID AS G_ID, NAME AS GROUP_NAME FROM `GROUP`) S5 ON S4.GROUP_ID = S5.G_ID ";
+        public static final String SELECT_DATA_TABLE_INFO = "SELECT ID, DATA_TABLE FROM DATA_SET WHERE ID = (SELECT DATA_SET_ID FROM ANALYSIS WHERE ID = %s)";
+        public static final String SELECT_REPORT_CHART = "SELECT * FROM REPORT_CHART WHERE REPORT_ID = %s";
+        public static final String SELECT_REPORT_CHART_DRAW_INFO = "SELECT S2.ID AS `ID`, REPORT_ID, S1.NAME AS `NAME`, ANALYSIS_CHART_ID, TYPE, DRAW_INFO, S1.CREATE_DATE AS `CREATE_DATE` FROM " +
+                "(SELECT * FROM REPORT WHERE ID = %s) S1 " +
+                "INNER JOIN (SELECT * FROM REPORT_CHART) S2 ON S1.ID = S2.REPORT_ID";
+        public static final String SELECT_REPORT_CHART_ID = "SELECT * FROM REPORT_CHART WHERE ID = %s";
+        public static final String SELECT_REPORT_CHART_DATA_ID = "SELECT * FROM REPORT_CHART WHERE REPORT_DATA_ID = %s";
+        public static final String SELECT_REPORT_DATA_SET = "SELECT * FROM REPORT_DATA_SET WHERE REPORT_ID = %s";
+        public static final String SELECT_REPORT_DATA_SET_ID = "SELECT * FROM REPORT_DATA_SET WHERE ID = %s";
+        public static final String SELECT_QUERY_TEXT = "SELECT QUERY_TEXT FROM QUERY WHERE ID = %s";
+        public static final String SELECT_REPORT_FILTER = "SELECT * FROM REPORT_FILTER_INFO " +
+                "WHERE GROUP_ID IN (SELECT ID FROM REPORT_FILTER_GROUP_INFO WHERE REPORT_DATA_SET_ID = %d AND QUERY_ID = %d)";
+        public static final String SELECT_REPORT_FILTER_GROUP = "SELECT * FROM REPORT_FILTER_GROUP_INFO WHERE REPORT_DATA_SET_ID = %d AND QUERY_ID = %d";
+
+        public static final String DELETE_REPORT_DATA_SET = "DELETE FROM REPORT_DATA_SET WHERE ID = %s";
+        public static final String DELETE_REPORT = "DELETE FROM REPORT WHERE ID = %s";
+        public static final String DELETE_REPORT_GROUP_MAPPING = "DELETE FROM GROUP_MAPPING WHERE ID = %s AND `TYPE` = 1";
+
+        public static final String UPDATE_REPORT = "UPDATE REPORT SET %s WHERE ID = %s";
+
+        public static final String INSERT_REPORT_CHART = "INSERT INTO REPORT_CHART (`REPORT_ID`, `NAME`, " +
+                "`DRAW_INFO`, `ANALYSIS_CHART_ID`, `TYPE`) " +
+                "VALUES (:REPORT_ID, :NAME, :DRAW_INFO, :ANALYSIS_CHART_ID, :TYPE)";
+        public static final String INSERT_REPORT_FILTER_INFO = "INSERT INTO REPORT_FILTER_INFO (GROUP_ID, `COLUMN`, " +
+                "`CONDITION`, VALUE1, VALUE2) VALUES (:groupId, :column, :condition, :value1, :value2)";
+        public static final String INSERT_REPORT_COLUMN_INFO = "INSERT INTO REPORT_COLUMN_INFO (REPORT_DATA_SET_ID, USE_COLUMNS, ORIGINAL_COLUMN, CHANGE_COLUMN, ADD_COLUMN) " +
+                "SELECT %d, USE_COLUMNS, ORIGINAL_COLUMN, CHANGE_COLUMN, ADD_COLUMN FROM ANALYSIS_COLUMN_INFO WHERE ANALYSIS_ID = %d";
+
+        public static final String UPDATE_REPORT_CHART = "UPDATE REPORT_CHART SET `REPORT_ID` = :REPORT_ID, `NAME` = :NAME, " +
+                "`ANALYSIS_CHART_ID` = :ANALYSIS_CHART_ID, `DRAW_INFO` = :DRAW_INFO, `TYPE` = :TYPE " +
+                "WHERE `ID` = :ID";
+        public static final String DELETE_REPORT_CHART = "DELETE FROM REPORT_CHART WHERE ID = %s";
+
+        public static final String CREATE_DATA_SET = "CREATE TABLE `DATA_SET` (" +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`NAME` VARCHAR(255) NOT NULL, " +
+                "`SRC_TYPE` VARCHAR(10) NOT NULL, " +
+                "`SRC_CONNECTION` VARCHAR(1024) NOT NULL, " +
+                "`DATA_TABLE` VARCHAR(64) NOT NULL, " +
+                "`USE_COLUMNS` TEXT NOT NULL, " +
+                "`ORIGINAL_COLUMN` TEXT NOT NULL, " +
+                "`CHANGE_COLUMN` TEXT NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "`STATUS` INT(11) NOT NULL DEFAULT '0', " +
+                "PRIMARY KEY (`ID`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_DATA_SET_FILTER = "CREATE TABLE `DATA_SET_FILTER` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`GROUP_ID` INT(11) NOT NULL, " +
+                "`COLUMN` VARCHAR(64) NOT NULL, " +
+                "`CONDITION` VARCHAR(10) NOT NULL, " +
+                "`VALUE1` VARCHAR(32) NULL DEFAULT NULL, " +
+                "`VALUE2` VARCHAR(32) NULL DEFAULT NULL, " +
+                "`ENABLE` VARCHAR(5) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_DATA_SET_FILTER` (`GROUP_ID`), " +
+                "CONSTRAINT `FK1_DATA_SET_FILTER` FOREIGN KEY (`GROUP_ID`) REFERENCES `DATA_SET_FILTER_GROUP` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_DATA_SET_FILTER_GROUP = "CREATE TABLE `DATA_SET_FILTER_GROUP` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`DATA_SET_ID` INT(11) NOT NULL, " +
+                "`NAME` VARCHAR(255) NOT NULL, " +
+                "`ENABLE` VARCHAR(5) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_DATA_SET_FILTER_GROUP` (`DATA_SET_ID`), " +
+                "CONSTRAINT `FK1_DATA_SET_FILTER_GROUP` FOREIGN KEY (`DATA_SET_ID`) REFERENCES `DATA_SET` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_DATA_SET_ADD_COLUMN = "CREATE TABLE `DATA_SET_ADD_COLUMN` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`DATA_SET_ID` INT(11) NOT NULL, " +
+                "`NAME` VARCHAR(64) NOT NULL, " +
+                "`ORIGINAL_COLUMN` VARCHAR(64) NOT NULL, " +
+                "`FORMULA` VARCHAR(1024) NOT NULL, " +
+                "`TYPE` VARCHAR(10) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_ADD_COLUMN` (`DATA_SET_ID`), " +
+                "CONSTRAINT `FK1_ADD_COLUMN` FOREIGN KEY (`DATA_SET_ID`) REFERENCES `DATA_SET` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_CHART_INFO = "CREATE TABLE `CHART_INFO` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`NAME` VARCHAR(50) NOT NULL, " +
+                "`TYPE` VARCHAR(50) NOT NULL, " +
+                "`VALUE` VARCHAR(255) NOT NULL, " +
+                "`USE_YN` VARCHAR(1) NOT NULL DEFAULT 'Y', " +
+                "`SORT` INT(11) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_ECHART_INFO = "CREATE TABLE `ECHART_INFO` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`NAME` VARCHAR(50) NULL, " +
+                "`TYPE` VARCHAR(50) NULL, " +
+                "`VALUE` VARCHAR(255) NULL, " +
+                "`USE_YN` VARCHAR(1) NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "`SORT` INT(11) NOT NULL, " +
+                "PRIMARY KEY (`ID`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_CHART_AGGREGATE = "CREATE TABLE `CHART_AGGREGATE` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`TYPE` VARCHAR(10) NOT NULL, " +
+                "`NAME` VARCHAR(50) NOT NULL, " +
+                "`FUNC` VARCHAR(50) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_CHART_FORMAT = "CREATE TABLE `CHART_FORMAT` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`TYPE` VARCHAR(10) NOT NULL, " +
+                "`NAME` VARCHAR(50) NOT NULL, " +
+                "`FUNC` VARCHAR(50) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_REPORT_DATA_SET = "CREATE TABLE `REPORT_DATA_SET` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`REPORT_ID` INT(11) NOT NULL, " +
+                "`DATA_SET_ID` INT(11) NULL DEFAULT NULL, " +
+                "`DATA_TABLE` VARCHAR(64) NULL DEFAULT NULL, " +
+                "`QUERY_ID` INT(11) NULL DEFAULT NULL, " +
+                "`VARIABLE_INFO` TEXT NULL, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_REPORT_DATA_SET` (`REPORT_ID`), " +
+                "INDEX `FK2_REPORT_DATA_SET` (`DATA_SET_ID`), " +
+                "INDEX `FK_REPORT_DATA_SET_QUERY` (`QUERY_ID`), " +
+                "CONSTRAINT `FK1_REPORT_DATA_SET` FOREIGN KEY (`REPORT_ID`) REFERENCES `REPORT` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE, " +
+                "CONSTRAINT `FK2_REPORT_DATA_SET` FOREIGN KEY (`DATA_SET_ID`) REFERENCES `DATA_SET` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE, " +
+                "CONSTRAINT `FK3_REPORT_DATA_SET_QUERY` FOREIGN KEY (`QUERY_ID`) REFERENCES `QUERY` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_ANALYSIS = "CREATE TABLE `ANALYSIS` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`QUERY_ID` INT(11) NULL DEFAULT NULL, " +
+                "`DATA_SET_ID` INT(11) NULL DEFAULT NULL, " +
+                "`NAME` VARCHAR(255) NOT NULL DEFAULT '이름 없음', " +
+                "`SUB_NAME` VARCHAR(255) NULL DEFAULT NULL, " +
+                "`THUMB_IMG` LONGTEXT NULL, " +
+                "`DATA_TABLE` VARCHAR(64) NULL DEFAULT NULL, " +
+                "`VARIABLE_INFO` TEXT NULL DEFAULT NULL, " +
+                "`CREATE_USER` VARCHAR(20) NULL DEFAULT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "`STATUS` INT(1) NOT NULL, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_ANALYSIS` (`DATA_SET_ID`), " +
+                "INDEX `FK_ANALYSIS_QUERY` (`QUERY_ID`), " +
+                "CONSTRAINT `FK1_ANALYSIS` FOREIGN KEY (`DATA_SET_ID`) REFERENCES `DATA_SET` (`ID`) ON UPDATE CASCADE ON DELETE SET NULL, " +
+                "CONSTRAINT `FK2_ANALYSIS_QUERY` FOREIGN KEY (`QUERY_ID`) REFERENCES `QUERY` (`ID`) ON UPDATE CASCADE ON DELETE SET NULL " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_ANALYSIS_CHART = "CREATE TABLE `ANALYSIS_CHART` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`ANALYSIS_ID` INT(11) NULL DEFAULT NULL, " +
+                "`NAME` VARCHAR(255) NOT NULL, " +
+                "`CHART_ID` INT(11) NULL DEFAULT NULL, " +
+                "`AXIS` VARCHAR(64) NULL DEFAULT NULL, " +
+                "`VALUE` VARCHAR(64) NULL DEFAULT NULL, " +
+                "`GROUP` VARCHAR(64) NULL DEFAULT NULL, " +
+                "`LINE` VARCHAR(64) NULL DEFAULT NULL, " +
+                "`FLAG` VARCHAR(50) NULL DEFAULT NULL, " +
+                "`TYPE` VARCHAR(50) NOT NULL, " +
+                "`OPTION` TEXT NOT NULL, " +
+                "`THUMBNAIL` LONGTEXT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_ANALYSIS_CHART` (`ANALYSIS_ID`), " +
+                "INDEX `FK2_ANALYSIS_CHART` (`CHART_ID`), " +
+                "CONSTRAINT `FK1_ANALYSIS_CHART` FOREIGN KEY (`ANALYSIS_ID`) REFERENCES `ANALYSIS` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE, " +
+                "CONSTRAINT `FK2_ANALYSIS_CHART` FOREIGN KEY (`CHART_ID`) REFERENCES `CHART_INFO` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_ANALYSIS_FILTER = "CREATE TABLE `ANALYSIS_FILTER` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`GROUP_ID` INT(11) NOT NULL, " +
+                "`COLUMN` VARCHAR(64) NOT NULL, " +
+                "`CONDITION` VARCHAR(10) NOT NULL, " +
+                "`VALUE1` VARCHAR(32) NULL DEFAULT NULL, " +
+                "`VALUE2` VARCHAR(32) NULL DEFAULT NULL, " +
+                "`ENABLE` VARCHAR(5) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_ANALYSIS_FILTER` (`GROUP_ID`), " +
+                "CONSTRAINT `FK1_ANALYSIS_FILTER` FOREIGN KEY (`GROUP_ID`) REFERENCES `ANALYSIS_FILTER_GROUP` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_ANALYSIS_FILTER_GROUP = "CREATE TABLE `ANALYSIS_FILTER_GROUP` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`ANALYSIS_ID` INT(11) NOT NULL, " +
+                "`NAME` VARCHAR(255) NOT NULL, " +
+                "`ENABLE` VARCHAR(5) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_ANALYSIS_FILTER_GROUP` (`ANALYSIS_ID`), " +
+                "CONSTRAINT `FK1_ANALYSIS_FILTER_GROUP` FOREIGN KEY (`ANALYSIS_ID`) REFERENCES `ANALYSIS` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_ANALYSIS_COLUMN_INFO = "CREATE TABLE `ANALYSIS_COLUMN_INFO` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`ANALYSIS_ID` INT(11) NOT NULL, " +
+                "`USE_COLUMNS` TEXT NOT NULL, " +
+                "`ORIGINAL_COLUMN` TEXT NOT NULL, " +
+                "`CHANGE_COLUMN` TEXT NOT NULL, " +
+                "`ADD_COLUMN` TEXT NULL DEFAULT NULL COMMENT '[{\"NAME\":\"\", \"ORIGINAL_COLUMN\":\"\", \"FORMULA\":\"\", \"TYPE\":\"\"}]', " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_ANALYSIS_COLUMN_INFO` (`ANALYSIS_ID`), " +
+                "CONSTRAINT `FK1_ANALYSIS_COLUMN_INFO` FOREIGN KEY (`ANALYSIS_ID`) REFERENCES `ANALYSIS` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_REPORT_FILTER_GROUP_INFO = "CREATE TABLE `REPORT_FILTER_GROUP_INFO` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`REPORT_DATA_SET_ID` INT(11) NOT NULL, " +
+                "`DATA_SET_ID` INT(11) NULL DEFAULT NULL, " +
+                "`QUERY_ID` INT(11) NULL DEFAULT NULL, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_REPORT_FILTER_GROUP_INFO` (`REPORT_DATA_SET_ID`), " +
+                "CONSTRAINT `FK1_REPORT_FILTER_GROUP_INFO` FOREIGN KEY (`REPORT_DATA_SET_ID`) REFERENCES `REPORT_DATA_SET` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_REPORT_FILTER_INFO = "CREATE TABLE `REPORT_FILTER_INFO` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`GROUP_ID` INT(11) NOT NULL, " +
+                "`COLUMN` VARCHAR(64) NOT NULL, " +
+                "`CONDITION` VARCHAR(10) NOT NULL, " +
+                "`VALUE1` VARCHAR(32) NULL DEFAULT NULL, " +
+                "`VALUE2` VARCHAR(32) NULL DEFAULT NULL, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_REPORT_FILTER_INFO` (`GROUP_ID`), " +
+                "CONSTRAINT `FK1_REPORT_FILTER_INFO` FOREIGN KEY (`GROUP_ID`) REFERENCES `REPORT_FILTER_GROUP_INFO` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_REPORT_COLUMN_INFO = "CREATE TABLE `REPORT_COLUMN_INFO` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`REPORT_DATA_SET_ID` INT(11) NOT NULL, " +
+                "`USE_COLUMNS` TEXT NOT NULL, " +
+                "`ORIGINAL_COLUMN` TEXT NOT NULL, " +
+                "`CHANGE_COLUMN` TEXT NOT NULL, " +
+                "`ADD_COLUMN` TEXT NULL DEFAULT NULL COMMENT '[{\"NAME\":\"\", \"ORIGINAL_COLUMN\":\"\", \"FORMULA\":\"\", \"TYPE\":\"\"}]', " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "INDEX `FK1_REPORT_COLUMN_INFO` (`REPORT_DATA_SET_ID`), " +
+                "CONSTRAINT `FK1_REPORT_COLUMN_INFO` FOREIGN KEY (`REPORT_DATA_SET_ID`) REFERENCES `REPORT_DATA_SET` (`ID`) ON UPDATE CASCADE ON DELETE CASCADE " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_ORIGINAL = "CREATE TABLE `ORIGINAL` ( " +
+                "`SCHEDULE_ID` INT(11) NOT NULL, " +
+                "`ORIGINAL_TABLE` VARCHAR(64) NOT NULL, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`SCHEDULE_ID`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_GROUP = "CREATE TABLE `GROUP` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`NAME` VARCHAR(128) NOT NULL, " +
+                "`DESCRIPTION` VARCHAR(1024) NOT NULL, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`), " +
+                "UNIQUE INDEX `NAME` (`NAME`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_GROUP_MAPPING = "CREATE TABLE `GROUP_MAPPING` ( " +
+                "`ID` INT(11) NOT NULL, " +
+                "`TYPE` INT(1) NOT NULL, " +
+                "`GROUP_ID` INT(11) NOT NULL, " +
+                "PRIMARY KEY (`ID`, `TYPE`), " +
+                "INDEX `FK_GROUP_MAPPING_GROUP` (`GROUP_ID`), " +
+                "CONSTRAINT `FK_GROUP_MAPPING_GROUP` FOREIGN KEY (`GROUP_ID`) REFERENCES `GROUP` (`ID`) " +
+                ")" +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+        public static final String CREATE_QUERY = "CREATE TABLE `QUERY` ( " +
+                "`ID` INT(11) NOT NULL AUTO_INCREMENT, " +
+                "`NAME` VARCHAR(255) NOT NULL, " +
+                "`DESCRIPTION` VARCHAR(1024) NULL DEFAULT NULL, " +
+                "`QUERY_TEXT` TEXT NOT NULL, " +
+                "`DATA_SET_INFO` VARCHAR(128) NOT NULL, " +
+                "`VARIABLE_INFO` TEXT NULL, " +
+                "`CREATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+                "`UPDATE_DATE` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                "PRIMARY KEY (`ID`) " +
+                ") " +
+                "COLLATE='utf8_general_ci' " +
+                "ENGINE=InnoDB";
+
+        public static final String SELECT_GROUP_BY_NAME = "SELECT COUNT(*) FROM `GROUP` WHERE NAME = %s";
+        public static final String INSERT_GROUP_TABLE = "INSERT INTO `GROUP` (`NAME`, `DESCRIPTION`)" +
+                "VALUES (:NAME, :DESCRIPTION) ON DUPLICATE KEY UPDATE `NAME` = VALUES(`NAME`)";
+
+    }
+
 }
